@@ -1,0 +1,6 @@
+node: "nodejs"
+container_path: /home/ec2-user/nodejs
+container_name: rknktm_nodejs
+image_name: rknktm/nodejs
+port: "5000:5000"
+dockerfile: /home/ec2-user/ansible-project/nodejs/Dockerfile

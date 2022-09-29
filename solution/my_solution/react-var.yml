@@ -1,0 +1,6 @@
+node: "react"
+container_path: /home/ec2-user/react
+container_name: rknktm_react
+image_name: rknktm/react
+port: "3000:3000"
+dockerfile: /home/ec2-user/ansible-project/react/Dockerfile

@@ -1,0 +1,12 @@
+node: "postgresql"
+container_path: /home/ec2-user/postgresql
+container_name: rknktm_postgresql
+image_name: rknktm/postgresql
+port: "5432:5432"
+source: /home/ec2-user/ansible-project/postgresql/database/init.sql
+dockerfile: /home/ec2-user/ansible-project/postgresql/database/Dockerfile
+env-var: 
+      POSTGRES_PASSWORD: "1234"
+volume: /db-data:/var/lib/postgresql/data
+
+

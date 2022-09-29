@@ -1,0 +1,4 @@
+- import_playbook: docker.yml
+- import_playbook: postgresql.yml
+- import_playbook: nodejs.yml
+- import_playbook: react.yml

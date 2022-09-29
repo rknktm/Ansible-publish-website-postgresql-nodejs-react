@@ -1,0 +1,139 @@
+
+---
+- name: print facts
+  hosts: _development
+  become: true
+  # gather_facts
+  tasks:
+    - name: Public IP of the Nodejs Instance
+      ansible.builtin.debug:
+        var: nodejsPublicIP
+      register: puip
+      when: ansible_hostname == "nodejs"
+    - name: Private Ip of the Postgresql Instance
+      ansible.builtin.debug:
+        var: postgrePrivateIP
+      register: pip
+      when: ansible_hostname == "postgresql"
+    - name: Hostname of the Instances
+      ansible.builtin.debug:
+        var: ansible_hostname
+      register: name
+
+    - include_vars: postgresql.yml
+      when: name.ansible_nodename == "postgresql"
+    - include_vars: nodejs.yml
+      when: name.ansible_nodename == "nodejs"
+    - include_vars: react.yml
+      when: name.ansible_nodename == "react"
+  
+    - name: update packages
+      yum: 
+        name: "*"
+        state: latest
+    - name: Uninstall old versions
+      yum:
+        name: "{{ item }}"
+        state: removed
+      loop:
+        - docker
+        - docker-client
+        - docker-client-latest
+        - docker-common
+        - docker-latest
+        - docker-latest-logrotate
+        - docker-logrotate
+        - docker-engine
+
+    - name: install yum-utils
+      yum:
+        name: yum-utils
+        state: latest
+      
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Install Docker
+      package:
+        name: docker-ce
+        state: latest
+
+    - name: Install pip
+      package: 
+        name: python3-pip
+        state: present
+        
+    - name: Install docker sdk
+      pip:
+        name: docker
+
+    - name: add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: start docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started 
+
+# according to variables create appropriate  Instance 
+    - name: create build directory
+      file:
+        path: "{{ container_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: "{{ node }} == name.ansible_nodename" 
+    - name: copy the files
+      copy: 
+        src: "{{ source }}"
+        dest: "{{ container_path }}"
+      when: "{{ node }} == name.ansible_nodename" 
+    - name: copy the dockerfile
+      copy: 
+        src: "{{ dockerfile }}"
+        dest: "{{ container_path }}"
+      when: "{{ node }} == name.ansible_nodename" 
+    
+    - name: env pip change
+      shell: sed -e "s/pip/{{ pip }}/" {{ container_path }}/server/.env
+      when: "{{ node }} == name.ansible_nodename" 
+    - name: env puip change
+      shell: sed -e "s/puip/{{ puip }}/" {{ container_path }}/client/.env
+      when: "{{ node }} == name.ansible_nodename" 
+
+    - name: remove container and image if exist
+      shell: "docker ps -q --filter 'name={{ container_name }}' && docker stop {{ container_name }} && docker rm -fv {{ container_name }} && docker image rm -f {{ image_name }} || echo 'Not Found'"
+      when: "{{ node }} == name.ansible_nodename" 
+    - name: build container image
+      docker_image:
+        name: "{{ image_name }}"
+        build:
+          path: "{{ container_path }}"
+        source: build
+        state: present
+      when: "{{ node }} == name.ansible_nodename" 
+
+    - name: create postgresql docker container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ image_name }}"
+        state: started
+        ports:
+          - "{{ port }}"
+        env: "{{ env-var }}"
+        volumes:
+          - "{{ volume }}"
+      register: container_info
+      when: "{{ node }} == name.ansible_nodename" 
+      
+    - name: print the container container_info
+      debug:
+        var: container_info
+      when: "{{ node }} == name.ansible_nodename" 
