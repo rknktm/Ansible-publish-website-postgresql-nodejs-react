@@ -1,0 +1,6 @@
+---
+# vars file for postgresql
+    postgre_container: /home/ec2-user/postgresql
+    container_name: rkn_postgre
+    image_name: rknktm/postgre
+    password: Pp123456789
