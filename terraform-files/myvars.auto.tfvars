@@ -8,5 +8,5 @@ controlinstancetype = "t3a.medium"
 num = 3
 region = "us-east-1"
 mysecgr = "ansible-project-207-sec-gr"
-user = "rknktm"
+user = "rkn"
 
